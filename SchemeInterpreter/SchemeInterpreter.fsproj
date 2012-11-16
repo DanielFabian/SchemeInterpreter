@@ -68,14 +68,15 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Ast.fs" />
     <FsYacc Include="Parser.fsy">
-    	<Module>Parser</Module>
+      <Module>Parser</Module>
     </FsYacc>
     <Compile Include="Parser.fsi" />
     <Compile Include="Parser.fs" />
     <FsLex Include="Lexer.fsl">
-    	<Unicode>True</Unicode>
+      <Unicode>True</Unicode>
     </FsLex>
     <Compile Include="Lexer.fs" />
+    <Compile Include="Evaluator.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" />

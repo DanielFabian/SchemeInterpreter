@@ -5,35 +5,28 @@ open Ast
 %start start
 
 %token <string> ID
+%token <string> STRING
 %token <int> INT
-%token PLUS MINUS TIMES LPAREN RPAREN IF THEN ELSE
-%token WHILE DO BEGIN END PRINT SEMI ASSIGN EOF
+%token <float> FLOAT
+%token <bool> BOOL
+%token LPAREN RPAREN DOT QUOTE
+%token EOF
 
-%left PLUS MINUS
-%left TIMES
-
-%type <Ast.prog> start
+%type <Ast.LispVal> start
 
 %%
 
-start: Prog                         { $1 }
-                                    
-Prog: StmtList                      { Prog (List.rev $1) }
-                                    
-Expr: ID                            { Val $1 }
-    | INT                           { Int $1 }
-    | Expr PLUS Expr                { Plus ($1, $3) }
-    | Expr MINUS Expr               { Minus ($1, $3) }
-    | Expr TIMES Expr               { Times ($1, $3) }
-    | LPAREN Expr RPAREN            { $2 }
-                                    
-Stmt: ID ASSIGN Expr                { Assign ($1, $3) }
-    | WHILE Expr DO Stmt            { While ($2, $4) }
-    | BEGIN StmtList END            { Seq (List.rev $2) }
-    | IF Expr THEN Stmt             { IfThen ($2, $4) }
-    | IF Expr THEN Stmt ELSE Stmt   { IfThenElse ($2, $4, $6) }
-    | PRINT Expr                    { Print $2 }
-
-StmtList:
-    | Stmt                          { [$1] }
-    | StmtList SEMI Stmt            { $3 :: $1 }
+start: Value                                { $1 }
+                                                                                     
+Value:                                      
+    | ID                                    { Atom $1 }                                
+    | INT                                   { Number $1 }
+    | FLOAT                                 { Float $1 }
+    | STRING                                { String $1 }
+    | BOOL                                  { Bool $1 }
+    | LPAREN ValueList RPAREN               { List (List.rev $2) }
+    | LPAREN ValueList DOT Value RPAREN     { DottedList (List.rev $2, $4) }
+    | QUOTE Value                           { List ( [Atom "quote"; $2] ) }
+ValueList:
+    |                                       { [] }
+    | ValueList Value                       { $2 :: $1 }

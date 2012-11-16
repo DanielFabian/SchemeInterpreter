@@ -17,12 +17,6 @@ let parseText text =
 [<EntryPoint>]
 let main _ = 
 
-    let sample = @"counter := 100; accum := 0;
-                 while counter do
-                 begin
-                     counter := counter - 1;
-                     accum := accum + counter
-                 end;
-                 print accum"
+    let sample = @""
     //start "x^5 - 2x^3 + 20"
     0
