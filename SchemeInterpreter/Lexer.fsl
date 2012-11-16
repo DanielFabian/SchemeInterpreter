@@ -1,71 +1,49 @@
 {
 module Lexer
-
+ 
 open System
+open Parser
+open Microsoft.FSharp.Text.Lexing
 
-type token =
-    | INT       of int
-    | FLOAT     of float
-    | ID        of string
-    | STRING    of string
-    | PLUS | MINUS | TIMES | HAT
-    | EOF
+let lexeme = LexBuffer<_>.LexemeString
 
-let lexeme = Lexing.LexBuffer<_>.LexemeString
+let ids =
+    [ ("while", WHILE);
+      ("begin", BEGIN);
+      ("end",   END);
+      ("do",    DO);
+      ("if",    IF);
+      ("then",  THEN);
+      ("else",  ELSE);
+      ("print", PRINT);]
+
+let idsMap = Map.ofList ids
+
+let ident lexbuf tokenText = match Map.tryFind tokenText idsMap with
+    | Some (keyword) -> keyword
+    | None -> ID tokenText
 }
 
 let num         = ['0' - '9']+
-let intNum      = '-'? num
-let floatNum    = '-'? num ('.' num)? (['e' 'E'] num)?
-let ident       = ['a' - 'z']+
+let alpha       = ['a' - 'z' 'A' - 'Z']
+let ident       = alpha+ (alpha | [ '_' '$'])*
+let integer     = '-'? num
 let whitespace  = ' ' | '\t'
 let newline     = '\n' | '\r' '\n'
 
 rule token = parse
-    | intNum        { INT (Convert.ToInt32 (lexeme lexbuf)) }
-    | floatNum      { FLOAT (Convert.ToDouble (lexeme lexbuf)) }
-    | ident         { ID (lexeme lexbuf) }
-    | '+'           { PLUS }
-    | '-'           { MINUS }
-    | '*'           { TIMES }
-    | '^'           { HAT }
     | whitespace    { token lexbuf }
-    | newline       { token lexbuf }
-    | eof           { EOF }
-    | "(*"          {
-                        comment lexbuf
+    | newline       {
+                        lexbuf.EndPos <- lexbuf.EndPos.NextLine
                         token lexbuf
                     }
-    | "\""          { STRING (string lexbuf.StartPos "" lexbuf) }
-    | _             { failwithf "unrecognized input '%s'" <| lexeme lexbuf }
-and comment = parse
-    | "(*"          { 
-                        comment lexbuf
-                        comment lexbuf
-                    }
-    | "*)"          { () }
-    | "\n"          {
-                        lexbuf.EndPos <- lexbuf.EndPos.NextLine
-                        comment lexbuf
-                    }
-    | eof           { failwith "Unterminated comment" }
-    | _             { comment lexbuf }
-and string pos s = parse
-    | "\\" ('"' | 'n' | 'r' | 't')
-                    {
-                        let s' = s + (match lexeme lexbuf with
-                            | "\\\"" -> "\""
-                            | "\\n" -> "\n"
-                            | "\\r" -> "\r"
-                            | "\\t" -> "\t"
-                            | "\\\\" -> "\\"
-                            | _     -> "")
-                        string pos s' lexbuf
-                    }
-    | "\""          { s }
-    | "\n"          { 
-                        lexbuf.EndPos <- lexbuf.EndPos.NextLine
-                        string pos (s + "\n") lexbuf
-                    }
-    | eof           { failwithf "end of file in string started at or near %A" pos }
-    | _             { string pos (s + (lexeme lexbuf)) lexbuf }
+    | "("           { LPAREN }
+    | ")"           { RPAREN }
+    | "+"           { PLUS }
+    | "-"           { MINUS }
+    | "*"           { TIMES }
+    | ";"           { SEMI }
+    | ":="          { ASSIGN }
+    | ident         { ident lexbuf (lexeme lexbuf) }
+    | integer       { INT (Int32.Parse(lexeme lexbuf)) }
+    | eof           { EOF }
