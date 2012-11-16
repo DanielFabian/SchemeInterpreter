@@ -44,11 +44,11 @@ let apply funcName args =
     | Some(func) -> func args
     | None -> Bool false
 
-let eval = function
+let rec eval = function
     | String _ as res -> res
     | List ([Atom "quote"; res]) -> res
     | Bool _ as res -> res
     | Float _ as res -> res
     | Number _ as res -> res
-    | List (Atom func :: args) -> apply func args
+    | List (Atom func :: args) -> apply func <| List.map eval args
     | _ -> failwith "blehm"
