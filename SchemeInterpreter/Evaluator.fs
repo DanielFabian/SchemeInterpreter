@@ -16,14 +16,8 @@ let rec showVal = function
     | List list -> "(" + printList showVal list + ")"
     | Number num -> num.ToString()
 
-let (|Integer|_|) (str: string) =
-   let mutable intvalue = 0
-   if Int32.TryParse(str, &intvalue) then Some(intvalue)
-   else None
-
 let rec unpackNum = function
     | Number num -> num
-    | String (Integer num) -> num
     | List ([value]) -> unpackNum value
     | _ -> 0
 
