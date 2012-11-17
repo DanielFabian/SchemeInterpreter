@@ -2,6 +2,10 @@ module Evaluator
 
 open Ast
 open System
+open FSharpx.Choice
+
+let choice = EitherBuilder()
+
 
 
 let printList showVal = List.map showVal >> String.concat " "
