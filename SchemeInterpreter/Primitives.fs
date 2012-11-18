@@ -13,12 +13,13 @@ type ListMonad() =
 let list = ListMonad()
 let choose = EitherBuilder()
 
-type LispError = NumArgs of int * LispVal list
-               | TypeMismatch of string * LispVal
-               | BadSpecialForm of string * LispVal
-               | NotFunction of string * string
-               | UnboundVar of string * string
-               | ParserError of string
+type LispError =
+    | NumArgs of int * LispVal list
+    | TypeMismatch of string * LispVal
+    | BadSpecialForm of string * LispVal
+    | NotFunction of string * string
+    | UnboundVar of string * string
+    | ParserError of string
              
 let rec showVal = function
     | String str -> "\"" + str + "\""
@@ -131,7 +132,7 @@ let rec equal = function
     | [List leftArgs; List rightArgs] -> compareList equal primitiveEquals leftArgs rightArgs
     | [arg1; arg2] -> returnM <| Bool (primitiveEquals (arg1, arg2))
     | badArgList -> Choice2Of2 <| NumArgs (2, badArgList)
-and primitiveEquals (arg1, arg2) = 
+and primitiveEquals (arg1, arg2) =
     list {
         let compareUsing unpacker arg1 arg2 =
             match unpacker arg1, unpacker arg2 with
@@ -141,6 +142,5 @@ and primitiveEquals (arg1, arg2) =
         let! comparer = [compareUsing unpackBool
                          compareUsing unpackNum
                          compareUsing unpackString]
-        return comparer arg1 arg2
-    }
+        return comparer arg1 arg2 }
     |> List.reduce (||)
