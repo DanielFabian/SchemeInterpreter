@@ -6,28 +6,45 @@ open FSharpx.Choice
 
 let choice = EitherBuilder()
 
-
-
-let printList showVal = List.map showVal >> String.concat " "
+type LispError = NumArgs of int * LispVal list
+               | TypeMismatch of string * LispVal
+               | BadSpecialForm of string * LispVal
+               | NotFunction of string * string
+               | UnboundVar of string * string
+               | ParserError of string
 
 let rec showVal = function
     | String str -> "\"" + str + "\""
     | Atom name -> name
     | Bool true -> "#t"
     | Bool false -> "#f"
-    | DottedList (list, value) -> "(" + printList showVal list + " . " + showVal value + ")"
+    | DottedList (list, value) -> "(" + printList list + " . " + showVal value + ")"
     | Float num -> num.ToString()
-    | List list -> "(" + printList showVal list + ")"
+    | List list -> "(" + printList list + ")"
     | Number num -> num.ToString()
+and 
+    printList = List.map showVal >> String.concat " "
+
+let showError = function
+    | UnboundVar (message, varname) -> message + ": " + varname
+    | BadSpecialForm (message, form) -> message + ": " + showVal form
+    | NotFunction (message, func) -> message + ": " + func
+    | NumArgs (expected, found) -> "Expected " + expected.ToString() + " args; found values " + printList found
+    | TypeMismatch (expected, found) -> "Invalid type: expected " + expected + " found " + showVal found
+    | ParserError message -> message
 
 let rec unpackNum = function
-    | Number num -> num
+    | Number num -> returnM num
     | List ([value]) -> unpackNum value
-    | _ -> 0
+    | _ -> returnM 0
 
-let lift f = List.map unpackNum >> List.reduce f >> Number
+let lift f list = 
+    match list with 
+    | [] | [_] as badArgs -> Choice2Of2 <| NumArgs (2, badArgs)
+    | goodArgs -> choice {
+        let! goodArgs = goodArgs |> mapM unpackNum
+        return List.reduce f goodArgs }
     
-// TODO: do something with mod / remainder and "/" / "quotient"
 let primitives = 
     Map.ofList <| [ ("+",           lift ( + ))
                     ("-",           lift ( - ))
@@ -40,13 +57,16 @@ let primitives =
 let apply funcName args =
     match Map.tryFind funcName primitives with
     | Some(func) -> func args
-    | None -> Bool false
+    | None -> Choice2Of2 <| NotFunction ("Unrecognized primitive function args", funcName)
 
 let rec eval = function
-    | String _ as res -> res
-    | List ([Atom "quote"; res]) -> res
-    | Bool _ as res -> res
-    | Float _ as res -> res
-    | Number _ as res -> res
-    | List (Atom func :: args) -> apply func <| List.map eval args
-    | _ -> failwith "blehm"
+    | String _ as res -> returnM res
+    | List ([Atom "quote"; res]) -> returnM res
+    | Bool _ as res -> returnM res
+    | Float _ as res -> returnM res
+    | Number _ as res -> returnM res
+    | List (Atom func :: args) -> choice {
+        let! evaluatedArgs = mapM eval args
+        let! result = apply func evaluatedArgs
+        return Number result }
+    | badForm -> Choice2Of2 <| BadSpecialForm ("Unrecognized special form", badForm)

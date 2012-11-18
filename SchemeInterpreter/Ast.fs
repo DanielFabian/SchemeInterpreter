@@ -8,3 +8,5 @@ type LispVal =
     | String of string
     | Bool of bool
     | Float of double
+    
+type LispProgram = Prog of LispVal list

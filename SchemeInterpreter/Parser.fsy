@@ -12,14 +12,16 @@ open Ast
 %token LPAREN RPAREN DOT QUOTE
 %token EOF
 
-%type <Ast.LispVal> start
+%type <Ast.LispProgram> start
 
 %%
 
-start: Value                                { $1 }
-                                                                                     
+start: Prog                                 { $1 }
+
+Prog: ValueList                             { Prog (List.rev $1) }
+
 Value:                                      
-    | ID                                    { Atom $1 }                                
+    | ID                                    { Atom $1 }
     | INT                                   { Number $1 }
     | FLOAT                                 { Float $1 }
     | STRING                                { String $1 }
