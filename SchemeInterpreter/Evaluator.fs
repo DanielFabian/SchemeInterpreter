@@ -30,7 +30,7 @@ let primitives =
                    ("cons",        cons)
                    ("eq?",         eqv)
                    ("eqv?",        eqv)
-                   ("equal?",      eqv)]
+                   ("equal?",      equal)]
 
 
 let apply funcName args =

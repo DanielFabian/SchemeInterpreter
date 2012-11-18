@@ -3,6 +3,7 @@ module Primitives
 open Ast
 open System.Linq
 
+open FSharpx.Prelude
 open FSharpx.Choice
 
 type ListMonad() =
@@ -41,6 +42,7 @@ let showError = function
 
 let rec unpackNum = function
     | Number num -> returnM num
+    | String (Int32 num) -> returnM num
     | List ([value]) -> unpackNum value
     | badValue -> Choice2Of2 <| TypeMismatch ("number", badValue)
 
@@ -100,44 +102,45 @@ let cons = function
     | [x1; x2] -> returnM <| DottedList ([x1], x2)
     | badArgList -> Choice2Of2 <| NumArgs (2, badArgList)
 
+let compareList eqv eqvPair leftArgs rightArgs =
+    choose {
+        if List.length leftArgs <> List.length rightArgs
+        then return Bool false
+        else
+            let lazyEqualities = List.zip leftArgs rightArgs |> Seq.map eqvPair
+            return Bool (lazyEqualities.All (fun x -> x)) }
+    
 let rec eqv = function
     | [Bool arg1; Bool arg2] -> returnM <| Bool (arg1 = arg2)
     | [Number arg1; Number arg2] -> returnM <| Bool (arg1 = arg2)
     | [String arg1; String arg2] -> returnM <| Bool (arg1 = arg2)
     | [Atom arg1; Atom arg2] -> returnM <| Bool (arg1 = arg2)
     | [DottedList (xs, x); DottedList (ys, y)] -> eqv [List (xs @ [x]); List (ys @ [y])]
-    | [List leftArgs; List rightArgs] -> choose {
-        if List.length leftArgs <> List.length rightArgs
-        then return Bool false
-        else
-            let eqvPair (leftArg, rightArg) = 
+    | [List leftArgs; List rightArgs] ->
+        let eqvPair (leftArg, rightArg) = 
                 match eqv [leftArg; rightArg] with
                 | Choice1Of2 (Bool value) -> value
                 | _ -> false
-                
-            let lazyEqualities = List.zip leftArgs rightArgs |> Seq.map eqvPair
-
-            return Bool (lazyEqualities.All (fun x -> x)) }
+        compareList eqv eqvPair leftArgs rightArgs
     | [_; _] -> returnM <| Bool false
     | badArgList -> Choice2Of2 <| NumArgs (2, badArgList)
 
 let rec equal = function
-    | [arg1; arg2] ->
-        let primitiveEquals = 
-            list {
-                let compareUsing unpacker arg1 arg2 =
-                    match unpacker arg1, unpacker arg2 with
-                    | Choice1Of2 left, Choice1Of2 right -> left = right
-                    | _ -> false
-
-                let! comparer = [compareUsing unpackBool
-                                 compareUsing unpackNum
-                                 compareUsing unpackString]
-                return comparer arg1 arg2
-            }
-            |> List.reduce (||)
-            
-        if primitiveEquals
-        then returnM <| Bool true
-        else eqv [arg1; arg2]
+    | [Atom arg1; Atom arg2] -> returnM <| Bool (arg1 = arg2)
+    | [DottedList (xs, x); DottedList (ys, y)] -> eqv [List (xs @ [x]); List (ys @ [y])]
+    | [List leftArgs; List rightArgs] -> compareList equal primitiveEquals leftArgs rightArgs
+    | [arg1; arg2] -> returnM <| Bool (primitiveEquals (arg1, arg2))
     | badArgList -> Choice2Of2 <| NumArgs (2, badArgList)
+and primitiveEquals (arg1, arg2) = 
+    list {
+        let compareUsing unpacker arg1 arg2 =
+            match unpacker arg1, unpacker arg2 with
+            | Choice1Of2 left, Choice1Of2 right -> left = right
+            | _ -> false
+
+        let! comparer = [compareUsing unpackBool
+                         compareUsing unpackNum
+                         compareUsing unpackString]
+        return comparer arg1 arg2
+    }
+    |> List.reduce (||)
