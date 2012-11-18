@@ -7,6 +7,7 @@ open System.Text
 open Ast
 open Parser
 open Lexer
+open Primitives
 open Evaluator
 
 
@@ -23,8 +24,9 @@ let parseText text =
 
 [<EntryPoint>]
 let main args = 
-    let evaluated = choice {
+    let evaluated = choose {
         let! ast = parseText args.[0]
+        printfn "%A" ast
         let! evaluated = eval <| ast
         return evaluated
     }

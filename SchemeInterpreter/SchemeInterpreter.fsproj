@@ -17,6 +17,7 @@
         <String>Parser.fsi</String>
         <String>Parser.fs</String>
         <String>Lexer.fs</String>
+        <String>Primitives.fs</String>
         <String>Evaluator.fs</String>
         <String>Program.fs</String>
       </BuildOrder>
@@ -82,6 +83,7 @@
       <Unicode>True</Unicode>
     </FsLex>
     <Compile Include="Lexer.fs" />
+    <Compile Include="Primitives.fs" />
     <Compile Include="Evaluator.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
