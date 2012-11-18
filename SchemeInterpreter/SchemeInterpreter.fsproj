@@ -14,7 +14,10 @@
       <BuildOrder>
         <String>AssemblyInfo.fs</String>
         <String>Ast.fs</String>
+        <String>Parser.fsi</String>
+        <String>Parser.fs</String>
         <String>Lexer.fs</String>
+        <String>Evaluator.fs</String>
         <String>Program.fs</String>
       </BuildOrder>
     </BuildOrder>
