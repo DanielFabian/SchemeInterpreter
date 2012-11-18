@@ -15,7 +15,7 @@ let parseText text =
     try
         match start token lexbuf with
         | Prog (head::tail) -> Choice1Of2 head
-        | _ -> failwith "Empty program"
+        | _ -> Choice2Of2 <| ParserError "Empty program"
     with e ->
         let pos = lexbuf.EndPos
         let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
