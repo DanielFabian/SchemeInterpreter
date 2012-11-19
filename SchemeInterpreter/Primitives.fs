@@ -12,14 +12,6 @@ type ListMonad() =
 
 let list = ListMonad()
 let choose = EitherBuilder()
-
-type LispError =
-    | NumArgs of int * LispVal list
-    | TypeMismatch of string * LispVal
-    | BadSpecialForm of string * LispVal
-    | NotFunction of string * string
-    | UnboundVar of string * string
-    | ParserError of string
              
 let rec showVal = function
     | String str -> "\"" + str + "\""
@@ -30,8 +22,19 @@ let rec showVal = function
     | Float num -> num.ToString()
     | List list -> "(" + printList list + ")"
     | Number num -> num.ToString()
+    | Func func -> printFunc func
 and 
     printList = List.map showVal >> String.concat " "
+and
+    printFunc = function
+    | PrimitiveFunc _ -> "<primitive>"
+    | CodedFunc { parameters = args; vararg = varargs; body = body; closure = env } -> 
+        let args = String.concat " " args
+        let varargs =
+            match varargs with
+            | Some arg -> " . " + arg
+            | None -> ""
+        "(lambda (" + args + varargs + ") ...)"
 
 let showError = function
     | UnboundVar (message, varname) -> message + ": " + varname

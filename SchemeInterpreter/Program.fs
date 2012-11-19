@@ -25,21 +25,24 @@ let main args =
             let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
             Choice2Of2 <| ParserError message
     
-    let evaluate text = choose {
+    let evaluate env text = choose {
         let! ast = parse text
-        let! evaluated = eval ast
+        let! evaluated = eval env ast
         return evaluated
     }
     
-    let rec repl() =
+    let rec repl env =
         let text = 
             Console.Write "Lisp>>> "
             Console.ReadLine()
         if text = "quit" then ()
         else
-            evaluate text
-            |> choice showVal showError
-            |> Console.WriteLine
-            repl()
-    repl()
+            match evaluate env text with
+            | Choice1Of2 (value, newEnv) -> 
+                Console.WriteLine (showVal value)
+                repl newEnv
+            | Choice2Of2 error -> 
+                Console.WriteLine (showError error)
+                repl env
+    repl Map.empty
     0
