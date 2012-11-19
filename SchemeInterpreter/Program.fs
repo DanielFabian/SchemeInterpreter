@@ -9,32 +9,37 @@ open Parser
 open Lexer
 open Primitives
 open Evaluator
+open FSharpx.Choice
 
-
-let parseText text = 
-    let lexbuf = Lexing.LexBuffer<_>.FromString text
-    try
-        match start token lexbuf with
-        | Prog (head::tail) -> Choice1Of2 head
-        | _ -> Choice2Of2 <| ParserError "Empty program"
-    with e ->
-        let pos = lexbuf.EndPos
-        let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
-        Choice2Of2 <| ParserError message
 
 [<EntryPoint>]
 let main args = 
-    let evaluated = choose {
-        let! ast = parseText args.[0]
-        printfn "%A" ast
-        let! evaluated = eval <| ast
+    let parse text = 
+        let lexbuf = Lexing.LexBuffer<_>.FromString text
+        try
+            match start token lexbuf with
+            | Prog (head::tail) -> Choice1Of2 head
+            | _ -> Choice2Of2 <| ParserError "Empty program"
+        with e ->
+            let pos = lexbuf.EndPos
+            let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
+            Choice2Of2 <| ParserError message
+    
+    let evaluate text = choose {
+        let! ast = parse text
+        let! evaluated = eval ast
         return evaluated
     }
     
-    let message = 
-        match evaluated with
-        | Choice1Of2 result -> showVal result
-        | Choice2Of2 error -> showError error 
-    
-    Console.WriteLine message
+    let rec repl() =
+        let text = 
+            Console.Write "Lisp>>> "
+            Console.ReadLine()
+        if text = "quit" then ()
+        else
+            evaluate text
+            |> choice showVal showError
+            |> Console.WriteLine
+            repl()
+    repl()
     0
