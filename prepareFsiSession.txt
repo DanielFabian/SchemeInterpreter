@@ -1,12 +1,23 @@
 #I "/Users/dany/github/local/fsharp/SchemeInterpreter/SchemeInterpreter/"
 #I "/Users/dany/github/local/fsharp/SchemeInterpreter/FSPowerPack.Community.2.1.3.1/Lib/Net40"
+#I "/Users/dany/github/local/fsharp/SchemeInterpreter/FSharpx.Core.1.6.109/lib/40"
+#I "/Users/dany/fsharp/SchemeInterpreter/SchemeInterpreter/"
+#I "/Users/dany/fsharp/SchemeInterpreter/FSPowerPack.Community.2.1.3.1/Lib/Net40"
+#I "/Users/dany/fsharp/SchemeInterpreter/FSharpx.Core.1.6.109/lib/40"
+
 #r "FSharp.PowerPack.dll"
+#r "FSharpx.Core.dll"
 #load "Ast.fs"
 #load "Parser.fs"
 #load "Lexer.fs"
+#load "Primitives.fs"
 #load "Evaluator.fs"
 
 #load "Program.fs"
-open Lexer
 
+open Ast
+open Parser
+open Lexer
+open Primitives
+open Evaluator
 open Program
