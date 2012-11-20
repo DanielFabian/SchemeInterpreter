@@ -13,7 +13,7 @@ and LispVal =
     | PrimitiveFunc of (LispVal list -> ThrowsError<LispVal>)
     | CodedFunc of FuncInfo
 
-and Env = Map<string, LispVal>
+and Env = { mutable env : Map<string, LispVal> }
 
 and FuncInfo = { parameters : string list; vararg : string option; body : LispVal list; closure : Env }
 

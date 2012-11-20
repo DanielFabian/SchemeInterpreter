@@ -37,12 +37,7 @@ let main args =
             Console.ReadLine()
         if text = "quit" then ()
         else
-            match evaluate env text with
-            | Choice1Of2 (value, newEnv) -> 
-                Console.WriteLine (showVal value)
-                repl newEnv
-            | Choice2Of2 error -> 
-                Console.WriteLine (showError error)
-                repl env
+            evaluate env text |> choice showVal showError |> Console.WriteLine
+            repl env
     repl primitiveBindings
     0
