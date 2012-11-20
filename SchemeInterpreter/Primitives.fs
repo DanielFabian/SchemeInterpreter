@@ -22,19 +22,16 @@ let rec showVal = function
     | Float num -> num.ToString()
     | List list -> "(" + printList list + ")"
     | Number num -> num.ToString()
-    | Func func -> printFunc func
-and 
-    printList = List.map showVal >> String.concat " "
-and
-    printFunc = function
     | PrimitiveFunc _ -> "<primitive>"
     | CodedFunc { parameters = args; vararg = varargs; body = body; closure = env } -> 
-        let args = String.concat " " args
+        let args = String.concat " " (List.map (fun s -> sprintf "%A" s) args)
         let varargs =
             match varargs with
             | Some arg -> " . " + arg
             | None -> ""
         "(lambda (" + args + varargs + ") ...)"
+and 
+    printList = List.map showVal >> String.concat " "
 
 let showError = function
     | UnboundVar (message, varname) -> message + ": " + varname

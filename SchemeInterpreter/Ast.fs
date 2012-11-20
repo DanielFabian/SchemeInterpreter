@@ -10,15 +10,12 @@ and LispVal =
     | String of string
     | Bool of bool
     | Float of double
-    | Func of Func
-
-and Func = 
     | PrimitiveFunc of (LispVal list -> ThrowsError<LispVal>)
     | CodedFunc of FuncInfo
 
-and Closure = { mutable env : Map<string, LispVal> }
+and Env = Map<string, LispVal>
 
-and FuncInfo = { parameters : string list; vararg : string option; body : LispVal list; closure : Closure }
+and FuncInfo = { parameters : string list; vararg : string option; body : LispVal list; closure : Env }
 
 and LispError =
     | NumArgs of int * LispVal list

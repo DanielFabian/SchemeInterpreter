@@ -44,5 +44,5 @@ let main args =
             | Choice2Of2 error -> 
                 Console.WriteLine (showError error)
                 repl env
-    repl Map.empty
+    repl primitiveBindings
     0
