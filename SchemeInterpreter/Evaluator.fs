@@ -35,6 +35,7 @@ let primitives =
                    ("equal?",      equal)]
 
 let isBound envRef var = Map.containsKey var envRef.env
+
 let defineVar envRef var value = 
     envRef.env <- Map.add var value envRef.env
     value
@@ -49,8 +50,14 @@ let setVar envRef var value =
     else
         Choice2Of2 <| UnboundVar ("Setting an unbound variable", var)
         
-let makeFunc varargs env pars body = CodedFunc {parameters = List.map showVal pars; vararg = varargs; body = body; closure = env}
+let makeFunc varargs env pars body = CodedFunc {
+    parameters = List.map showVal pars
+    vararg = varargs
+    body = body
+    closure = {env = env.env} }
+    
 let makeNormalFunc = makeFunc None
+
 let makeVarargFunc = makeFunc << Some << showVal
 
 let rec eval envRef = function
