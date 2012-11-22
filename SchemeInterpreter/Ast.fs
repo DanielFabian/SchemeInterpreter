@@ -12,6 +12,8 @@ and LispVal =
     | Float of double
     | PrimitiveFunc of (LispVal list -> ThrowsError<LispVal>)
     | CodedFunc of FuncInfo
+    | Port
+    | IOFunc of (LispVal list -> ThrowsError<LispVal>)
 
 and Env = { mutable env : Map<string, LispVal> }
 

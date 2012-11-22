@@ -30,6 +30,8 @@ let rec showVal = function
             | Some arg -> " . " + arg
             | None -> ""
         "(lambda (" + args + varargs + ") ...)"
+    | Port -> "<IO port>"
+    | IOFunc _ -> "<IO primitive>"
 and 
     printList = List.map showVal >> String.concat " "
 

@@ -18,16 +18,16 @@ let main args =
         let lexbuf = Lexing.LexBuffer<_>.FromString text
         try
             match start token lexbuf with
-            | Prog (head::tail) -> Choice1Of2 head
-            | _ -> Choice2Of2 <| ParserError "Empty program"
+            | Prog [] -> Choice2Of2 <| ParserError "Empty program"
+            | Prog prog -> Choice1Of2 prog
         with e ->
             let pos = lexbuf.EndPos
             let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
             Choice2Of2 <| ParserError message
     
     let evaluate env text = choose {
-        let! ast = parse text
-        let! evaluated = eval env ast
+        let! prog = parse text
+        let! evaluated = mapM (eval env) prog
         return evaluated
     }
     
@@ -37,7 +37,9 @@ let main args =
             Console.ReadLine()
         if text = "quit" then ()
         else
-            evaluate env text |> choice showVal showError |> Console.WriteLine
+            match evaluate env text with
+            | Choice1Of2 resultVals -> resultVals |> List.map showVal |> List.iter Console.WriteLine
+            | Choice2Of2 error -> showError error |> Console.WriteLine
             repl env
     repl primitiveBindings
     0
