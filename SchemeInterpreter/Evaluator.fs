@@ -47,9 +47,10 @@ let apply eval func args =
                 defineVar env argName <| List argList |> ignore
                 Choice1Of2 ()
             | [], None, [] -> Choice1Of2 ()
+        let localEnv = { env = closure }
         choose {
-            let! _ = bindParameters { env = closure } parameters args
-            let! result = mapM (eval { env = closure }) body
+            let! _ = bindParameters localEnv parameters args
+            let! result = mapM (eval localEnv) body
             return result |> List.rev |> List.head
         }
     | _ -> Choice2Of2 <| NotFunction ("Not a function", showVal func)
@@ -127,14 +128,7 @@ let rec eval envRef = function
     | List (Atom "lambda" :: (Atom _ as varargs) :: body) -> returnM (makeVarargFunc varargs envRef [] body)
     | List ([Atom "load"; String filename]) -> choose {
         let! statements = load filename
-        let rec execute = function
-            | [a] -> eval envRef a
-            | x::xs -> choose {
-                let! _ = eval envRef x
-                let! result = execute xs
-                return result }
-            | _ -> Choice2Of2 <| ParserError "Empty Program"
-        let! result = execute statements
+        let! result = statements |> foldM (fun _ value -> eval envRef value) (List [])
         return result }
     | List (func :: args) -> choose {
         let rec evalArgs env argVals = function
