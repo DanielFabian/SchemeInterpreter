@@ -89,4 +89,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" />
   <Import Project="$(FsYaccToolPath)FSharp.PowerPack.Targets" />
+  <ItemGroup>
+    <Content Include="stdlib.scm" />
+  </ItemGroup>
 </Project>
