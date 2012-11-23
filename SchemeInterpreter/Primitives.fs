@@ -183,23 +183,31 @@ let rec readPort = function
     | [] -> readPort [Port (Console.OpenStandardInput())]
     | [Port port] ->
         let reader = new IO.StreamReader(port)
-        parse (reader.ReadLine())
+        parse (reader.ReadLine()) |> map List.head
     | list -> Choice2Of2 <| TypeMismatch ("Empty list or Port", List list)
     
 let rec writePort = function
     | [obj] -> writePort [obj; Port <| Console.OpenStandardOutput()]
     | [obj; Port port] -> 
         let writer = new IO.StreamWriter(port)
-        Choice1Of2 <| writer.WriteLine(showVal obj)
+        writer.WriteLine(showVal obj)
+        Choice1Of2 <| Bool true
     | list -> Choice2Of2 <| TypeMismatch ("String or String and Port", List list)
     
 let readContents = function
     | [String filename] ->
         let reader = new IO.StreamReader(filename)
-        Choice1Of2 <| reader.ReadToEnd()
+        Choice1Of2 <| LispVal.String (reader.ReadToEnd())
     | list -> Choice2Of2 <| TypeMismatch ("String", List list)
 
-let load filename = readContents [LispVal.String filename] |> bind parse
+let load filename = choose {
+    let! contents = readContents [LispVal.String filename]
+    let! text =
+        match contents with
+        | String text -> Choice1Of2 text
+        | notString -> Choice2Of2 <| TypeMismatch ("String", notString)
+    let! statements = parse text
+    return statements }
 
 let readAll = function
     | [String filename] -> load filename |> map List

@@ -32,6 +32,70 @@ let makeNormalFunc = makeFunc None
 
 let makeVarargFunc = makeFunc << Some << showVal
 
+let apply eval func args = 
+    match func with
+    | PrimitiveFunc func -> func args
+    | CodedFunc ({parameters = parameters; vararg = vararg; body = body; closure = closure}) -> 
+        let rec bindParameters env pars arguments =
+            match pars, vararg, arguments with
+            | x::xs, _, y::ys -> 
+                defineVar env x y |> ignore
+                bindParameters env xs ys
+            | _::_, _, [] 
+            | [], None, _::_ -> Choice2Of2 <| NumArgs (List.length parameters, args)
+            | [], Some argName, argList ->
+                defineVar env argName <| List argList |> ignore
+                Choice1Of2 ()
+            | [], None, [] -> Choice1Of2 ()
+        choose {
+            let! _ = bindParameters { env = closure } parameters args
+            let! result = mapM (eval { env = closure }) body
+            return result |> List.rev |> List.head
+        }
+    | _ -> Choice2Of2 <| NotFunction ("Not a function", showVal func)
+
+let applyProc apply = function
+    | [func; List args] -> apply func args
+    | func::args -> apply func args
+    | list -> Choice2Of2 <| NotFunction ("Not a function", showVal <| List list)
+
+let primitives eval = 
+    Map.ofList <| [("+",                    numeric ( + ))
+                   ("-",                    numeric ( - ))
+                   ("*",                    numeric ( * ))
+                   ("/",                    numeric ( / ))
+                   ("mod",                  numeric ( % ))
+                   ("quotient",             numeric ( / ))
+                   ("remainder",            numeric ( % ))
+                   ("=",                    numBool ( = ))
+                   ("<",                    numBool ( < ))
+                   (">",                    numBool ( > ))
+                   ("/=",                   numBool ( <> ))
+                   (">=",                   numBool ( >= ))
+                   ("<=",                   numBool ( <= ))
+                   ("&&",                   bool ( && ))
+                   ("||",                   bool ( || ))
+                   ("string=?",             strBool ( = ))
+                   ("string<?",             strBool ( < ))
+                   ("string>?",             strBool ( > ))
+                   ("string<=?",            strBool ( <= ))
+                   ("string>=?",            strBool ( >= ))
+                   ("car",                  car)
+                   ("cdr",                  cdr)
+                   ("cons",                 cons)
+                   ("eq?",                  eqv)
+                   ("eqv?",                 eqv)
+                   ("equal?",               equal)
+                   ("apply",                applyProc <| apply eval)
+                   ("open-input-file",      makePort System.IO.FileMode.OpenOrCreate)
+                   ("open-output-file",     makePort System.IO.FileMode.Truncate)
+                   ("close-input-port",     closePort)
+                   ("close-output-port",    closePort)
+                   ("read",                 readPort)
+                   ("write",                writePort)
+                   ("read-contents",        readContents)
+                   ("read-all",             readAll)]
+
 let rec eval envRef = function
     | String _ as res -> returnM res
     | List ([Atom "quote"; res]) -> returnM res
@@ -81,74 +145,10 @@ let rec eval envRef = function
                 return result }
         let! func = eval envRef func
         let! argVals = evalArgs envRef [] args
-        let! result = apply func argVals
+        let! result = apply eval func argVals
         return result }
     | badForm -> Choice2Of2 <| BadSpecialForm ("Unrecognized special form", badForm)
-    
-and apply func args = 
-    match func with
-    | PrimitiveFunc func -> func args
-    | CodedFunc ({parameters = parameters; vararg = vararg; body = body; closure = closure}) -> 
-        let rec bindParameters env pars arguments =
-            match pars, vararg, arguments with
-            | x::xs, _, y::ys -> 
-                defineVar env x y |> ignore
-                bindParameters env xs ys
-            | _::_, _, [] 
-            | [], None, _::_ -> Choice2Of2 <| NumArgs (List.length parameters, args)
-            | [], Some argName, argList ->
-                defineVar env argName <| List argList |> ignore
-                Choice1Of2 ()
-            | [], None, [] -> Choice1Of2 ()
-        choose {
-            let! _ = bindParameters { env = closure } parameters args
-            let! result = mapM (eval { env = closure }) body
-            return result |> List.rev |> List.head
-        }
-    | _ -> Choice2Of2 <| NotFunction ("Not a function", showVal func)
-
-and primitives = 
-    Map.ofList <| [("+",                    numeric ( + ))
-                   ("-",                    numeric ( - ))
-                   ("*",                    numeric ( * ))
-                   ("/",                    numeric ( / ))
-                   ("mod",                  numeric ( % ))
-                   ("quotient",             numeric ( / ))
-                   ("remainder",            numeric ( % ))
-                   ("=",                    numBool ( = ))
-                   ("<",                    numBool ( < ))
-                   (">",                    numBool ( > ))
-                   ("/=",                   numBool ( <> ))
-                   (">=",                   numBool ( >= ))
-                   ("<=",                   numBool ( <= ))
-                   ("&&",                   bool ( && ))
-                   ("||",                   bool ( || ))
-                   ("string=?",             strBool ( = ))
-                   ("string<?",             strBool ( < ))
-                   ("string>?",             strBool ( > ))
-                   ("string<=?",            strBool ( <= ))
-                   ("string>=?",            strBool ( >= ))
-                   ("car",                  car)
-                   ("cdr",                  cdr)
-                   ("cons",                 cons)
-                   ("eq?",                  eqv)
-                   ("eqv?",                 eqv)
-                   ("equal?",               equal)
-                   ("apply",                applyProc)
-                   ("open-input-file",      makePort System.IO.FileMode.OpenOrCreate)
-                   ("open-output-file",     makePort System.IO.FileMode.Truncate)
-                   ("close-input-port",     closePort)
-                   ("close-output-port",    closePort)
-                   ("read",                 readPort)
-                   ("write",                writePort)
-                   ("read-contents",        readContents)
-                   ("read-all",             readAll)]
-
-and applyProc = function
-    | [func; List args] -> apply func args
-    | func::args -> apply func args
-    | list -> Choice2Of2 <| NotFunction ("Not a function", showVal <| List list)
         
 let primitiveBindings =
     let makePrimitiveFunc var func = PrimitiveFunc func
-    { env = Map.map makePrimitiveFunc primitives }
+    { env = Map.map makePrimitiveFunc <| primitives eval }
