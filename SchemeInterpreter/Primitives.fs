@@ -196,8 +196,11 @@ let rec writePort = function
     
 let readContents = function
     | [String filename] ->
-        let reader = new IO.StreamReader(filename)
-        Choice1Of2 <| LispVal.String (reader.ReadToEnd())
+        try 
+            let reader = new IO.StreamReader(filename)
+            Choice1Of2 <| LispVal.String (reader.ReadToEnd())
+        with
+            ex -> Choice2Of2 <| PortError ex
     | list -> Choice2Of2 <| TypeMismatch ("String", List list)
 
 let load filename = choose {
