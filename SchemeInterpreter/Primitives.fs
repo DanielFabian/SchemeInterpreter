@@ -1,7 +1,10 @@
 module Primitives
 
 open Ast
+open System
 open System.Linq
+open Lexer
+open Parser
 
 open FSharpx.Prelude
 open FSharpx.Choice
@@ -30,7 +33,7 @@ let rec showVal = function
             | Some arg -> " . " + arg
             | None -> ""
         "(lambda (" + args + varargs + ") ...)"
-    | Port -> "<IO port>"
+    | Port _ -> "<IO port>"
     | IOFunc _ -> "<IO primitive>"
 and 
     printList = List.map showVal >> String.concat " "
@@ -42,6 +45,7 @@ let showError = function
     | NumArgs (expected, found) -> "Expected " + expected.ToString() + " args; found values " + printList found
     | TypeMismatch (expected, found) -> "Invalid type: expected " + expected + ", found " + showVal found
     | ParserError message -> message
+    | PortError ex -> sprintf "Could not open the port: %s" ex.Message
 
 let rec unpackNum = function
     | Number num -> returnM num
@@ -146,3 +150,57 @@ and primitiveEquals (arg1, arg2) =
                          compareUsing unpackString]
         return comparer arg1 arg2 }
     |> List.reduce (||)
+    
+let makePort mode = function
+    | [String fileName] ->
+        try
+            Choice1Of2 <| (Port (System.IO.File.Open (fileName, mode) :> System.IO.Stream))
+        with
+        | ex -> Choice2Of2 <| (PortError ex)
+    | list -> Choice2Of2 <| (TypeMismatch ("String", List list))
+    
+let closePort = function
+    | [Port port] ->
+        try
+            port.Dispose()
+            Choice1Of2 <| Bool true
+        with
+            _ -> Choice1Of2 <| Bool false
+    | list -> Choice2Of2 <| TypeMismatch ("Port", List list)
+
+let parse text = 
+    let lexbuf = Lexing.LexBuffer<_>.FromString text
+    try
+        match start token lexbuf with
+        | Prog [] -> Choice2Of2 <| ParserError "Empty program"
+        | Prog prog -> Choice1Of2 prog
+    with e ->
+        let pos = lexbuf.EndPos
+        let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
+        Choice2Of2 <| ParserError message
+    
+let rec readPort = function
+    | [] -> readPort [Port (Console.OpenStandardInput())]
+    | [Port port] ->
+        let reader = new IO.StreamReader(port)
+        parse (reader.ReadLine())
+    | list -> Choice2Of2 <| TypeMismatch ("Empty list or Port", List list)
+    
+let rec writePort = function
+    | [obj] -> writePort [obj; Port <| Console.OpenStandardOutput()]
+    | [obj; Port port] -> 
+        let writer = new IO.StreamWriter(port)
+        Choice1Of2 <| writer.WriteLine(showVal obj)
+    | list -> Choice2Of2 <| TypeMismatch ("String or String and Port", List list)
+    
+let readContents = function
+    | [String filename] ->
+        let reader = new IO.StreamReader(filename)
+        Choice1Of2 <| reader.ReadToEnd()
+    | list -> Choice2Of2 <| TypeMismatch ("String", List list)
+
+let load filename = readContents [LispVal.String filename] |> bind parse
+
+let readAll = function
+    | [String filename] -> load filename |> map List
+    | list -> Choice2Of2 <| TypeMismatch ("String", List list)

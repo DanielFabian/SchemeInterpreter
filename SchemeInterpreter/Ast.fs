@@ -1,5 +1,7 @@
 module Ast
 
+open System
+
 type ThrowsError<'a> = Choice<'a, LispError>
 
 and LispVal =
@@ -12,10 +14,12 @@ and LispVal =
     | Float of double
     | PrimitiveFunc of (LispVal list -> ThrowsError<LispVal>)
     | CodedFunc of FuncInfo
-    | Port
+    | Port of System.IO.Stream
     | IOFunc of (LispVal list -> ThrowsError<LispVal>)
 
-and Env = { mutable env : Map<string, LispVal> }
+and Env = Map<string, LispVal>
+
+and MutEnv = { mutable env : Env }
 
 and FuncInfo = { parameters : string list; vararg : string option; body : LispVal list; closure : Env }
 
@@ -26,5 +30,6 @@ and LispError =
     | NotFunction of string * string
     | UnboundVar of string * string
     | ParserError of string
+    | PortError of Exception
     
 type LispProgram = Prog of LispVal list

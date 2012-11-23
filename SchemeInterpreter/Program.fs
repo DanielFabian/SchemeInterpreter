@@ -14,17 +14,6 @@ open FSharpx.Choice
 
 [<EntryPoint>]
 let main args = 
-    let parse text = 
-        let lexbuf = Lexing.LexBuffer<_>.FromString text
-        try
-            match start token lexbuf with
-            | Prog [] -> Choice2Of2 <| ParserError "Empty program"
-            | Prog prog -> Choice1Of2 prog
-        with e ->
-            let pos = lexbuf.EndPos
-            let message = sprintf "Error near line %d, character %d\n" pos.Line pos.Column
-            Choice2Of2 <| ParserError message
-    
     let evaluate env text = choose {
         let! prog = parse text
         let! evaluated = mapM (eval env) prog

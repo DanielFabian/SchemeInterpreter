@@ -6,34 +6,6 @@ open FSharpx.Choice
 open FSharpx.Prelude
 open FSharpx
 
-let primitives = 
-    Map.ofList <| [("+",           numeric ( + ))
-                   ("-",           numeric ( - ))
-                   ("*",           numeric ( * ))
-                   ("/",           numeric ( / ))
-                   ("mod",         numeric ( % ))
-                   ("quotient",    numeric ( / ))
-                   ("remainder",   numeric ( % ))
-                   ("=",           numBool ( = ))
-                   ("<",           numBool ( < ))
-                   (">",           numBool ( > ))
-                   ("/=",          numBool ( <> ))
-                   (">=",          numBool ( >= ))
-                   ("<=",          numBool ( <= ))
-                   ("&&",          bool ( && ))
-                   ("||",          bool ( || ))
-                   ("string=?",    strBool ( = ))
-                   ("string<?",    strBool ( < ))
-                   ("string>?",    strBool ( > ))
-                   ("string<=?",   strBool ( <= ))
-                   ("string>=?",   strBool ( >= ))
-                   ("car",         car)
-                   ("cdr",         cdr)
-                   ("cons",        cons)
-                   ("eq?",         eqv)
-                   ("eqv?",        eqv)
-                   ("equal?",      equal)]
-
 let isBound envRef var = Map.containsKey var envRef.env
 
 let defineVar envRef var value = 
@@ -54,7 +26,7 @@ let makeFunc varargs env pars body = CodedFunc {
     parameters = List.map showVal pars
     vararg = varargs
     body = body
-    closure = {env = env.env} }
+    closure = env.env }
     
 let makeNormalFunc = makeFunc None
 
@@ -89,6 +61,17 @@ let rec eval envRef = function
     | List (Atom "lambda" :: List pars :: body) -> returnM (makeNormalFunc envRef pars body)
     | List (Atom "lambda" :: DottedList (pars, varargs) :: body) -> returnM (makeVarargFunc varargs envRef pars body)
     | List (Atom "lambda" :: (Atom _ as varargs) :: body) -> returnM (makeVarargFunc varargs envRef [] body)
+    | List ([Atom "load"; String filename]) -> choose {
+        let! statements = load filename
+        let rec execute = function
+            | [a] -> eval envRef a
+            | x::xs -> choose {
+                let! _ = eval envRef x
+                let! result = execute xs
+                return result }
+            | _ -> Choice2Of2 <| ParserError "Empty Program"
+        let! result = execute statements
+        return result }
     | List (func :: args) -> choose {
         let rec evalArgs env argVals = function
             | [] -> Choice1Of2 <| List.rev argVals
@@ -118,11 +101,53 @@ and apply func args =
                 Choice1Of2 ()
             | [], None, [] -> Choice1Of2 ()
         choose {
-            let! _ = bindParameters closure parameters args
-            let! result = mapM (eval closure) body
+            let! _ = bindParameters { env = closure } parameters args
+            let! result = mapM (eval { env = closure }) body
             return result |> List.rev |> List.head
         }
     | _ -> Choice2Of2 <| NotFunction ("Not a function", showVal func)
+
+and primitives = 
+    Map.ofList <| [("+",                    numeric ( + ))
+                   ("-",                    numeric ( - ))
+                   ("*",                    numeric ( * ))
+                   ("/",                    numeric ( / ))
+                   ("mod",                  numeric ( % ))
+                   ("quotient",             numeric ( / ))
+                   ("remainder",            numeric ( % ))
+                   ("=",                    numBool ( = ))
+                   ("<",                    numBool ( < ))
+                   (">",                    numBool ( > ))
+                   ("/=",                   numBool ( <> ))
+                   (">=",                   numBool ( >= ))
+                   ("<=",                   numBool ( <= ))
+                   ("&&",                   bool ( && ))
+                   ("||",                   bool ( || ))
+                   ("string=?",             strBool ( = ))
+                   ("string<?",             strBool ( < ))
+                   ("string>?",             strBool ( > ))
+                   ("string<=?",            strBool ( <= ))
+                   ("string>=?",            strBool ( >= ))
+                   ("car",                  car)
+                   ("cdr",                  cdr)
+                   ("cons",                 cons)
+                   ("eq?",                  eqv)
+                   ("eqv?",                 eqv)
+                   ("equal?",               equal)
+                   ("apply",                applyProc)
+                   ("open-input-file",      makePort System.IO.FileMode.OpenOrCreate)
+                   ("open-output-file",     makePort System.IO.FileMode.Truncate)
+                   ("close-input-port",     closePort)
+                   ("close-output-port",    closePort)
+                   ("read",                 readPort)
+                   ("write",                writePort)
+                   ("read-contents",        readContents)
+                   ("read-all",             readAll)]
+
+and applyProc = function
+    | [func; List args] -> apply func args
+    | func::args -> apply func args
+    | list -> Choice2Of2 <| NotFunction ("Not a function", showVal <| List list)
         
 let primitiveBindings =
     let makePrimitiveFunc var func = PrimitiveFunc func
