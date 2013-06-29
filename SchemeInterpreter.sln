@@ -3,12 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "SchemeInterpreter", "SchemeInterpreter\SchemeInterpreter.fsproj", "{D520BB1B-E841-4381-A92E-756AE9A79373}"
 EndProject
+Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "SchemeInterpreter.Test", "SchemeInterpreter.Test\SchemeInterpreter.Test.fsproj", "{CDB479D5-0DE8-487D-A2FE-BB97E267664F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CDB479D5-0DE8-487D-A2FE-BB97E267664F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CDB479D5-0DE8-487D-A2FE-BB97E267664F}.Debug|x86.Build.0 = Debug|Any CPU
+		{CDB479D5-0DE8-487D-A2FE-BB97E267664F}.Release|x86.ActiveCfg = Release|Any CPU
+		{CDB479D5-0DE8-487D-A2FE-BB97E267664F}.Release|x86.Build.0 = Release|Any CPU
 		{D520BB1B-E841-4381-A92E-756AE9A79373}.Debug|x86.ActiveCfg = Debug|x86
 		{D520BB1B-E841-4381-A92E-756AE9A79373}.Debug|x86.Build.0 = Debug|x86
 		{D520BB1B-E841-4381-A92E-756AE9A79373}.Release|x86.ActiveCfg = Release|x86
